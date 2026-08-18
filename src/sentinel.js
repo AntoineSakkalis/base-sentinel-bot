@@ -64,28 +64,34 @@ class M2MSentinelService {
     const proxyType = proxy.proxyType || audit.proxyType || (isProxy ? 'EIP-1967 Transparent Proxy' : 'None');
     const implAddress = proxy.targetAddress || audit.implementationAddress || null;
 
-    // Check for dangerous opcodes
+    // Extract high-confidence / executable dangerous opcodes
     const dangerousOpcodes = [];
-    if (capabilities.includes('SELFDESTRUCT')) dangerousOpcodes.push('SELFDESTRUCT (0xFF)');
-    if (capabilities.includes('UNCHECKED_DELEGATECALL')) dangerousOpcodes.push('UNCHECKED_DELEGATECALL (0xF4)');
+    const detailedCaps = dissection.capabilities || [];
+    
+    // Only flag hazardous opcodes if executable / medium+ confidence
+    const executableCaps = verdict.executableCapabilities || [];
+    for (const cap of detailedCaps) {
+      if (cap.type === 'SELFDESTRUCT' && (cap.confidence === 'HIGH' || cap.confidence === 'MEDIUM' || executableCaps.includes('SELFDESTRUCT'))) {
+        dangerousOpcodes.push('SELFDESTRUCT (0xFF)');
+      }
+      if ((cap.type === 'DELEGATECALL' || cap.type === 'UNCHECKED_DELEGATECALL') && cap.evidence && cap.evidence.includes('user-supplied')) {
+        dangerousOpcodes.push('UNCHECKED_DELEGATECALL (0xF4)');
+      }
+    }
 
     // Risk score calculation
     let riskScore = 0;
     if (audit.capabilityScore !== undefined) {
-      // If capabilityScore is provided (100 = cleanest, 0 = flagged)
+      // Scale 0-100 where higher score in M2M API = cleaner contract
       riskScore = Math.max(0, 100 - audit.capabilityScore);
     } else if (audit.riskScore !== undefined) {
       riskScore = audit.riskScore;
-    } else {
-      if (dangerousOpcodes.length > 0) riskScore += 50;
-      if (capabilities.includes('DELEGATECALL')) riskScore += 20;
-      if (capabilities.includes('MINT_SELECTOR')) riskScore += 15;
     }
 
     let trustLevel = 'VERIFIED_SAFE';
-    if (riskScore > config.HIGH_RISK_THRESHOLD || dangerousOpcodes.length > 0) {
+    if (dangerousOpcodes.length > 0 || riskScore > config.HIGH_RISK_THRESHOLD) {
       trustLevel = 'CRITICAL_RISK';
-    } else if (riskScore > config.MAX_SAFE_RISK_SCORE || isProxy) {
+    } else if (isProxy || riskScore > config.MAX_SAFE_RISK_SCORE) {
       trustLevel = 'MODERATE_RISK';
     }
 
