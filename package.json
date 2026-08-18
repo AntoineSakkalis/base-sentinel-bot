@@ -1,0 +1,33 @@
+{
+  "name": "base-sentinel-bot",
+  "version": "1.0.0",
+  "description": "Discord & Telegram Web3 Security Bot for Base L2 — EVM Bytecode Audits, EIP-1967 Proxy Resolution, Gas Telemetry, and Agent Preflight Guard",
+  "main": "src/index.js",
+  "bin": {
+    "base-sentinel": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "bot:discord": "node src/platforms/discord.js",
+    "bot:telegram": "node src/platforms/telegram.js",
+    "cli": "node src/cli.js",
+    "demo": "node src/cli.js --demo",
+    "test": "node tests/sentinel.test.js && node tests/formatters.test.js && node tests/bot.test.js"
+  },
+  "keywords": [
+    "discord-bot",
+    "telegram-bot",
+    "web3-security",
+    "base-l2",
+    "evm-bytecode",
+    "m2m-sentinel",
+    "smart-contract-audit",
+    "agentic-ai",
+    "eip-1967"
+  ],
+  "author": "Antoine Sakkalis",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
